@@ -2193,6 +2193,8 @@ static void default_options(struct f2fs_sb_info *sbi, bool remount)
 	F2FS_OPTION(sbi).flush_group = make_kgid(&init_user_ns, F2FS_DEF_RESGID);
 	F2FS_OPTION(sbi).memory_mode = MEMORY_MODE_NORMAL;
 
+	set_opt(sbi, ATGC);
+	set_opt(sbi, GC_MERGE);
 	set_opt(sbi, INLINE_XATTR);
 	set_opt(sbi, INLINE_DATA);
 	set_opt(sbi, INLINE_DENTRY);
