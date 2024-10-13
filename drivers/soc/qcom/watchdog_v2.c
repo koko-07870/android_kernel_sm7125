@@ -364,6 +364,7 @@ static DEVICE_ATTR(pet_time, 0400, wdog_pet_time_get, NULL);
 #ifdef CONFIG_SEC_DEBUG
 static unsigned long long last_emerg_pet;
 
+#ifdef CONFIG_QCOM_WATCHDOG_V2
 void emerg_pet_watchdog(void)
 {
 	if (wdog_base_addr && enable) {
@@ -375,6 +376,7 @@ void emerg_pet_watchdog(void)
 	}
 }
 EXPORT_SYMBOL(emerg_pet_watchdog);
+#endif
 #endif
 
 static void pet_watchdog(struct msm_watchdog_data *wdog_dd)
@@ -583,7 +585,9 @@ static irqreturn_t wdog_bark_handler(int irq, void *dev_id)
 
 	if (wdog_dd->do_ipi_ping)
 		dump_cpu_alive_mask(wdog_dd);
+#ifdef CONFIG_QCOM_WATCHDOG_V2
 	emerg_pet_watchdog();
+#endif
 	/* to see wdog_dd->watchdog_task status */
 	sched_show_task(wdog_dd->watchdog_task);
 	/* send stop IPI to see what happens on other cores */
