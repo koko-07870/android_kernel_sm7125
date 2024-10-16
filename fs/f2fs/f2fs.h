@@ -2031,7 +2031,6 @@ static inline unsigned int f2fs_time_to_wait(struct f2fs_sb_info *sbi,
  *   - rsvd
  */
 void f2fs_set_sb_extra_flag(struct f2fs_sb_info *sbi, int flag);
-void f2fs_get_fsck_stat(struct f2fs_sb_info *sbi);
 
 /*
  * Inline functions
