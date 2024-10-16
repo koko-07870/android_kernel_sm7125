@@ -583,18 +583,8 @@ out:
 		if (!sbi->iostat_enable)
 			f2fs_reset_iostat(sbi);
 		return count;
-	} else if (!strcmp(a->attr.name, "sec_fua_mode")) {
-		const char *mode= strim((char *)buf);
-		int idx;
-
-		for (idx = 0; idx < NR_F2FS_SEC_FUA_MODE; idx++) {
-			if(!strcmp(mode, sec_fua_mode_names[idx]))
-				sbi->s_sec_cond_fua_mode = idx;
-		}
-
-		return count;
 	}
-
+	
 	if (!strcmp(a->attr.name, "iostat_period_ms")) {
 		if (t < MIN_IOSTAT_PERIOD_MS || t > MAX_IOSTAT_PERIOD_MS)
 			return -EINVAL;
@@ -984,11 +974,6 @@ static struct attribute *f2fs_attrs[] = {
 	ATTR_LIST(max_io_bytes),
 	ATTR_LIST(gc_pin_file_thresh),
 	ATTR_LIST(extension_list),
-	ATTR_LIST(sec_gc_stat),
-	ATTR_LIST(sec_io_stat),
-	ATTR_LIST(sec_fsck_stat),
-	ATTR_LIST(sec_heimdallfs_stat),
-	ATTR_LIST(sec_fua_mode),
 #ifdef CONFIG_F2FS_FAULT_INJECTION
 	ATTR_LIST(inject_rate),
 	ATTR_LIST(inject_type),
