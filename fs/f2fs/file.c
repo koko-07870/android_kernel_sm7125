@@ -222,8 +222,6 @@ static inline enum cp_reason_type need_do_checkpoint(struct inode *inode)
 							TRANS_DIR_INO))
 		cp_reason = CP_RECOVER_DIR;
 
-	sbi->sec_stat.cpr_cnt[cp_reason]++;
-
 	return cp_reason;
 }
 
@@ -299,9 +297,6 @@ static int f2fs_do_sync_file(struct file *file, loff_t start, loff_t end,
 	if (S_ISDIR(inode->i_mode))
 		goto go_write;
 
-	sbi->sec_stat.fsync_count++;
-	sbi->sec_stat.fsync_dirty_pages += get_dirty_pages(inode);
-
 	/* if fdatasync is triggered, let's do in-place-update */
 	if (datasync || get_dirty_pages(inode) <= SM_I(sbi)->min_fsync_blocks)
 		set_inode_flag(inode, FI_NEED_IPU);
@@ -366,7 +361,6 @@ go_write:
 		try_to_fix_pino(inode);
 		clear_inode_flag(inode, FI_APPEND_WRITE);
 		clear_inode_flag(inode, FI_UPDATE_WRITE);
-		sbi->sec_stat.cp_cnt[STAT_CP_FSYNC]++;
 		goto out;
 	}
 sync_nodes:
@@ -4275,10 +4269,6 @@ static long __f2fs_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return f2fs_release_compress_blocks(filp, arg);
 	case F2FS_IOC_RESERVE_COMPRESS_BLOCKS:
 		return f2fs_reserve_compress_blocks(filp, arg);
-	case F2FS_IOC_GET_VALID_NODE_COUNT:
-		return f2fs_ioc_get_valid_node_count(filp, arg);
-	case F2FS_IOC_STAT_COMPRESS_FILE:
-		return f2fs_ioc_stat_compress_file(filp, arg);
 	case F2FS_IOC_SEC_TRIM_FILE:
 		return f2fs_sec_trim_file(filp, arg);
 	case F2FS_IOC_GET_COMPRESS_OPTION:
@@ -4642,8 +4632,6 @@ long f2fs_compat_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	case F2FS_IOC_GET_COMPRESS_BLOCKS:
 	case F2FS_IOC_RELEASE_COMPRESS_BLOCKS:
 	case F2FS_IOC_RESERVE_COMPRESS_BLOCKS:
-	case F2FS_IOC_GET_VALID_NODE_COUNT:
-	case F2FS_IOC_STAT_COMPRESS_FILE:
 	case F2FS_IOC_SEC_TRIM_FILE:
 	case F2FS_IOC_GET_COMPRESS_OPTION:
 	case F2FS_IOC_SET_COMPRESS_OPTION:
