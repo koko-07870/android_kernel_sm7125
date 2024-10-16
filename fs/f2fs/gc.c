@@ -1040,7 +1040,6 @@ next_step:
 		if (!err && gc_type == FG_GC)
 			submitted++;
 		stat_inc_node_blk_count(sbi, 1, gc_type);
-		sbi->sec_stat.gc_node_blk_count[gc_type]++;
 	}
 
 	if (++phase < 3)
@@ -1616,7 +1615,6 @@ next_step:
 			}
 
 			stat_inc_data_blk_count(sbi, 1, gc_type);
-			sbi->sec_stat.gc_data_blk_count[gc_type]++;
 		}
 	}
 
@@ -1724,11 +1722,10 @@ static int do_garbage_collect(struct f2fs_sb_info *sbi,
 		 *   - down_read(sentry_lock)     - change_curseg()
 		 *                                  - lock_page(sum_page)
 		 */
-		if (type == SUM_TYPE_NODE) {
+		if (type == SUM_TYPE_NODE)
 			submitted += gc_node_segment(sbi, sum->entries, segno,
 								gc_type);
-			sbi->sec_stat.gc_node_seg_count[gc_type]++;
-		} else {
+		else
 			submitted += gc_data_segment(sbi, sum->entries, gc_list,
 							segno, gc_type,
 							force_migrate);
