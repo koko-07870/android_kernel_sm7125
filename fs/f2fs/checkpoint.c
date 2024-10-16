@@ -1629,24 +1629,6 @@ static int do_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 	return unlikely(f2fs_cp_error(sbi)) ? -EIO : 0;
 }
 
-#define	CP_TIME_RECORD_UNIT	1000000
-static void f2fs_update_max_cp_interval(struct f2fs_sb_info *sbi)
-{
-	unsigned long long cp_interval = 0;
-
-	curr_cp_time = local_clock();
-	if (!priv_cp_time)
-		goto out;
-
-	cp_interval = ((curr_cp_time - priv_cp_time) / CP_TIME_RECORD_UNIT) ?
-		((curr_cp_time - priv_cp_time) / CP_TIME_RECORD_UNIT) : 1;
-
-	if (sbi->sec_stat.cp_max_interval < cp_interval)
-		sbi->sec_stat.cp_max_interval = cp_interval;
-out:
-	priv_cp_time = curr_cp_time;
-}
-
 int f2fs_write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 {
 	struct f2fs_checkpoint *ckpt = F2FS_CKPT(sbi);
@@ -1734,8 +1716,6 @@ int f2fs_write_checkpoint(struct f2fs_sb_info *sbi, struct cp_control *cpc)
 stop:
 	unblock_operations(sbi);
 	stat_inc_cp_count(sbi->stat_info);
-	sbi->sec_stat.cp_cnt[STAT_CP_ALL]++;
-	f2fs_update_max_cp_interval(sbi);
 
 	if (cpc->reason & CP_RECOVERY)
 		f2fs_notice(sbi, "checkpoint: version = %llx", ckpt_ver);
