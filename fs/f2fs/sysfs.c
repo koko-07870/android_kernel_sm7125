@@ -53,12 +53,6 @@ static const char *gc_mode_names[MAX_GC_MODE] = {
 	"GC_URGENT_MID"
 };
 
-const char *sec_fua_mode_names[NR_F2FS_SEC_FUA_MODE] = {
-	"NONE",
-	"ROOT",
-	"ALL",
-};
-
 struct f2fs_attr {
 	struct attribute attr;
 	ssize_t (*show)(struct f2fs_attr *, struct f2fs_sb_info *, char *);
@@ -337,92 +331,8 @@ static ssize_t f2fs_sbi_show(struct f2fs_attr *a,
 			len += scnprintf(buf + len, PAGE_SIZE - len, "%s\n",
 								extlist[i]);
 		return len;
-	} else if (!strcmp(a->attr.name, "sec_gc_stat")) {
-		return snprintf(buf, PAGE_SIZE, "\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\"\n",
-			"FGGC", sbi->sec_stat.gc_count[FG_GC],
-			"FGGC_NSEG", sbi->sec_stat.gc_node_seg_count[FG_GC],
-			"FGGC_NBLK", sbi->sec_stat.gc_node_blk_count[FG_GC],
-			"FGGC_DSEG", sbi->sec_stat.gc_data_seg_count[FG_GC],
-			"FGGC_DBLK", sbi->sec_stat.gc_data_blk_count[FG_GC],
-			"FGGC_TTIME", sbi->sec_stat.gc_ttime[FG_GC],
-			"BGGC", sbi->sec_stat.gc_count[BG_GC],
-			"BGGC_NSEG", sbi->sec_stat.gc_node_seg_count[BG_GC],
-			"BGGC_NBLK", sbi->sec_stat.gc_node_blk_count[BG_GC],
-			"BGGC_DSEG", sbi->sec_stat.gc_data_seg_count[BG_GC],
-			"BGGC_DBLK", sbi->sec_stat.gc_data_blk_count[BG_GC],
-			"BGGC_TTIME", sbi->sec_stat.gc_ttime[BG_GC]);
-	} else if (!strcmp(a->attr.name, "sec_io_stat")) {
-		u64 kbytes_written = 0;
-
-		if (sbi->sb->s_bdev->bd_part)
-			kbytes_written = BD_PART_WRITTEN(sbi) -
-					 sbi->sec_stat.kwritten_byte;
-
-		return snprintf(buf, PAGE_SIZE, "\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\","
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%u\","
-		"\"%s\":\"%u\",\"%s\":\"%u\"\n",
-			"CP",		sbi->sec_stat.cp_cnt[STAT_CP_ALL],
-			"CPBG",		sbi->sec_stat.cp_cnt[STAT_CP_BG],
-			"CPSYNC",	sbi->sec_stat.cp_cnt[STAT_CP_FSYNC],
-			"CPNONRE",	sbi->sec_stat.cpr_cnt[CP_NON_REGULAR],
-			"CPSBNEED",	sbi->sec_stat.cpr_cnt[CP_SB_NEED_CP],
-			"CPWPINO",	sbi->sec_stat.cpr_cnt[CP_WRONG_PINO],
-			"CP_MAX_INT",	sbi->sec_stat.cp_max_interval,
-			"LFSSEG",	sbi->sec_stat.alloc_seg_type[LFS],
-			"SSRSEG",	sbi->sec_stat.alloc_seg_type[SSR],
-			"LFSBLK",	sbi->sec_stat.alloc_blk_count[LFS],
-			"SSRBLK",	sbi->sec_stat.alloc_blk_count[SSR],
-			"IPU",		(u64)atomic64_read(&sbi->sec_stat.inplace_count),
-			"FSYNC",	sbi->sec_stat.fsync_count,
-			"FSYNC_MB",	sbi->sec_stat.fsync_dirty_pages >> 8,
-			"HOT_DATA",	sbi->sec_stat.hot_file_written_blocks >> 8,
-			"COLD_DATA",	sbi->sec_stat.cold_file_written_blocks >> 8,
-			"WARM_DATA",	sbi->sec_stat.warm_file_written_blocks >> 8,
-			"MAX_INMEM",	sbi->sec_stat.max_inmem_pages,
-			"DROP_INMEM",	sbi->sec_stat.drop_inmem_all,
-			"DROP_INMEMF",	sbi->sec_stat.drop_inmem_files,
-			"WRITE_MB",	(u64)(kbytes_written >> 10),
-			"FS_PERROR",	sbi->sec_stat.fs_por_error,
-			"FS_ERROR",	sbi->sec_stat.fs_error,
-			"MAX_UNDSCD",	sbi->sec_stat.max_undiscard_blks);
-	} else if (!strcmp(a->attr.name, "sec_fsck_stat")) {
-		return snprintf(buf, PAGE_SIZE,
-		"\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%llu\",\"%s\":\"%u\","
-		"\"%s\":\"%u\",\"%s\":\"%u\"\n",
-			"FSCK_RBYTES",	sbi->sec_fsck_stat.fsck_read_bytes,
-			"FSCK_WBYTES",	sbi->sec_fsck_stat.fsck_written_bytes,
-			"FSCK_TIME_MS",	sbi->sec_fsck_stat.fsck_elapsed_time,
-			"FSCK_EXIT",	sbi->sec_fsck_stat.fsck_exit_code,
-			"FSCK_VNODES",	sbi->sec_fsck_stat.valid_node_count,
-			"FSCK_VINODES",	sbi->sec_fsck_stat.valid_inode_count);
-	} else if (!strcmp(a->attr.name, "sec_heimdallfs_stat")) {
-		return snprintf(buf, PAGE_SIZE,
-		"\"%s\":\"%u\",\"%s\":\"%llu\",\"%s\":\"%u\",\"%s\":\"%llu\",\"%s\":\"%llu\"\n",
-			"NR_PKGS", sbi->sec_heimdallfs_stat.nr_pkgs,
-			"NR_PKG_BLKS", sbi->sec_heimdallfs_stat.nr_pkg_blks,
-			"NR_COMP_PKGS", sbi->sec_heimdallfs_stat.nr_comp_pkgs,
-			"NR_COMP_PKG_BLKS", sbi->sec_heimdallfs_stat.nr_comp_pkg_blks,
-			"NR_COMP_PKG_SAVED_BLKS", sbi->sec_heimdallfs_stat.nr_comp_saved_blks);
-	} else if (!strcmp(a->attr.name, "sec_fua_mode")) {
-		int len = 0, i;
-		for (i = 0; i < NR_F2FS_SEC_FUA_MODE; i++) {
-			if (i == sbi->s_sec_cond_fua_mode)
-				len += snprintf(buf, PAGE_SIZE, "[%s] ",
-						sec_fua_mode_names[i]);
-			else
-				len += snprintf(buf, PAGE_SIZE, "%s ",
-						sec_fua_mode_names[i]);
-		}
-		return len;
- 	}
-
+	}
+		
 	if (!strcmp(a->attr.name, "ckpt_thread_ioprio")) {
 		struct ckpt_req_control *cprc = &sbi->cprc_info;
 		int len = 0;
@@ -538,56 +448,8 @@ static ssize_t __sbi_store(struct f2fs_attr *a,
 out:
 		f2fs_up_write(&sbi->sb_lock);
 		return ret ? ret : count;
-	} else if(!strcmp(a->attr.name, "sec_gc_stat")) {
-			sbi->sec_stat.gc_count[BG_GC] = 0;
-			sbi->sec_stat.gc_count[FG_GC] = 0;
-			sbi->sec_stat.gc_node_seg_count[BG_GC] = 0;
-			sbi->sec_stat.gc_node_seg_count[FG_GC] = 0;
-			sbi->sec_stat.gc_data_seg_count[BG_GC] = 0;
-			sbi->sec_stat.gc_data_seg_count[FG_GC] = 0;
-			sbi->sec_stat.gc_node_blk_count[BG_GC] = 0;
-			sbi->sec_stat.gc_node_blk_count[FG_GC] = 0;
-			sbi->sec_stat.gc_data_blk_count[BG_GC] = 0;
-			sbi->sec_stat.gc_data_blk_count[FG_GC] = 0;
-			sbi->sec_stat.gc_ttime[BG_GC] = 0;
-			sbi->sec_stat.gc_ttime[FG_GC] = 0;
-		return count;
-	} else if (!strcmp(a->attr.name, "sec_io_stat")) {
-		sbi->sec_stat.cp_cnt[STAT_CP_ALL] = 0;
-		sbi->sec_stat.cp_cnt[STAT_CP_BG] = 0;
-		sbi->sec_stat.cp_cnt[STAT_CP_FSYNC] = 0;
-		for (i = 0; i < NR_CP_REASON; i++)
-			sbi->sec_stat.cpr_cnt[i] = 0;
-		sbi->sec_stat.cp_max_interval= 0;
-		sbi->sec_stat.alloc_seg_type[LFS] = 0;
-		sbi->sec_stat.alloc_seg_type[SSR] = 0;
-		sbi->sec_stat.alloc_blk_count[LFS] = 0;
-		sbi->sec_stat.alloc_blk_count[SSR] = 0;
-		atomic64_set(&sbi->sec_stat.inplace_count, 0);
-		sbi->sec_stat.fsync_count = 0;
-		sbi->sec_stat.fsync_dirty_pages = 0;
-		sbi->sec_stat.hot_file_written_blocks = 0;
-		sbi->sec_stat.cold_file_written_blocks = 0;
-		sbi->sec_stat.warm_file_written_blocks = 0;
-		sbi->sec_stat.max_inmem_pages = 0;
-		sbi->sec_stat.drop_inmem_all = 0;
-		sbi->sec_stat.drop_inmem_files = 0;
-		if (sbi->sb->s_bdev->bd_part)
-			sbi->sec_stat.kwritten_byte = BD_PART_WRITTEN(sbi);
-		sbi->sec_stat.fs_por_error = 0;
-		sbi->sec_stat.fs_error = 0;
-		sbi->sec_stat.max_undiscard_blks = 0;
-		return count;
-	} else if (!strcmp(a->attr.name, "sec_fsck_stat")) {
-		sbi->sec_fsck_stat.fsck_read_bytes = 0;
-		sbi->sec_fsck_stat.fsck_written_bytes = 0;
-		sbi->sec_fsck_stat.fsck_elapsed_time = 0;
-		sbi->sec_fsck_stat.fsck_exit_code = 0;
-		sbi->sec_fsck_stat.valid_node_count = 0;
-		sbi->sec_fsck_stat.valid_inode_count = 0;
-		return count;
 	}
-
+	
 	if (!strcmp(a->attr.name, "ckpt_thread_ioprio")) {
 		const char *name = strim((char *)buf);
 		struct ckpt_req_control *cprc = &sbi->cprc_info;
