@@ -847,9 +847,6 @@ retry:
 
 		if (gc_type == BG_GC && test_bit(secno, dirty_i->victim_secmap))
 			goto next;
-		/* W/A for FG_GC failure due to Atomic Write File */    
-		if (test_bit(secno, dirty_i->blacklist_victim_secmap))
-			goto next;
 
 		if (gc_type == FG_GC && f2fs_section_is_pinned(dirty_i, secno))
 			goto next;
@@ -1784,11 +1781,6 @@ int f2fs_gc(struct f2fs_sb_info *sbi, struct f2fs_gc_control *gc_control)
 				free_segments(sbi),
 				reserved_segments(sbi),
 				prefree_segments(sbi));
-
-	gc_start_time = local_clock();
-	/* W/A for FG_GC failure due to Atomic Write File */    
-	memset(DIRTY_I(sbi)->blacklist_victim_secmap, 0,
-					f2fs_bitmap_size(MAIN_SECS(sbi)));
 
 	cpc.reason = __get_cp_reason(sbi);
 	sbi->skipped_gc_rwsem = 0;
