@@ -1619,9 +1619,7 @@ static int __write_node_page(struct page *page, bool atomic, bool *submitted,
 		.io_wbc = wbc,
 	};
 	unsigned int seq;
-
-	f2fs_cond_set_fua(&fio);
-
+	
 	trace_f2fs_writepage(page, NODE);
 
 	if (unlikely(f2fs_cp_error(sbi))) {
@@ -2134,12 +2132,6 @@ static int f2fs_write_node_pages(struct address_space *mapping,
 
 	if (unlikely(is_sbi_flag_set(sbi, SBI_POR_DOING)))
 		goto skip_write;
-
-	/* W/A - prevent panic while shutdown */
-	if (unlikely(ignore_fs_panic)) {
-		pr_err("%s: Ignore panic\n", __func__);
-		return -EIO;
-	}
 
 	/* balancing f2fs's metadata in background */
 	f2fs_balance_fs_bg(sbi, true);
