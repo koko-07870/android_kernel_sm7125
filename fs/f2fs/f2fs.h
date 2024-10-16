@@ -41,30 +41,6 @@
 	} while (0)
 #endif
 
-extern int ignore_fs_panic;
-extern void (*ufs_debug_func)(void *);
-
-#define f2fs_bug_on(sbi, condition)	  __f2fs_bug_on(sbi, condition, true)
-#define f2fs_bug_on_endio(sbi, condition) __f2fs_bug_on(sbi, condition, false)	
-#define __f2fs_bug_on(sbi, condition, set_extra_blk)				\
-	do {									\
-		if (unlikely(condition)) {					\
-			if (ufs_debug_func)					\
-				ufs_debug_func(NULL);				\
-			if (is_sbi_flag_set(sbi, SBI_POR_DOING)) {		\
-				set_sbi_flag(sbi, SBI_NEED_FSCK);		\
-				sbi->sec_stat.fs_por_error++;			\
-				WARN_ON(1);					\
-			} else if (unlikely(!ignore_fs_panic)) {		\
-				if (set_extra_blk)				\
-					f2fs_set_sb_extra_flag(sbi,		\
-						F2FS_SEC_EXTRA_FSCK_MAGIC);	\
-				sbi->sec_stat.fs_error++;			\
-				BUG_ON_CHKFS(1);				\
-			}							\
-		}								\
-	} while (0)
-
 enum {
 	FAULT_KMALLOC,
 	FAULT_KVMALLOC,
@@ -1010,13 +986,6 @@ enum nat_state {
 	MAX_NAT_STATE,
 };
 
-enum nat_state {
-	TOTAL_NAT,
-	DIRTY_NAT,
-	RECLAIMABLE_NAT,
-	MAX_NAT_STATE,
-};
-
 struct f2fs_nm_info {
 	block_t nat_blkaddr;		/* base disk address of NAT */
 	nid_t max_nid;			/* maximum possible node ids */
@@ -1713,59 +1682,6 @@ struct decompress_io_ctx {
 #define MIN_COMPRESS_LOG_SIZE		2
 #define MAX_COMPRESS_LOG_SIZE		8
 #define MAX_COMPRESS_WINDOW_SIZE(log_size)	((PAGE_SIZE) << (log_size))
-
-enum sec_stat_cp_type {
-	STAT_CP_ALL,
-	STAT_CP_BG,
-	STAT_CP_FSYNC,
-	NR_STAT_CP,
-};
-
-struct f2fs_sec_stat_info {
-	u64 gc_count[2];		/* FG_GC, BG_GC */
-	u64 gc_node_seg_count[2];
-	u64 gc_data_seg_count[2];
-	u64 gc_node_blk_count[2];
-	u64 gc_data_blk_count[2];
-	u64 gc_ttime[2];
-
-	u64 cp_cnt[NR_STAT_CP];		/* total, balance, fsync */
-	u64 cpr_cnt[NR_CP_REASON];	/* cp reason by fsync */
-	u64 cp_max_interval;		/* max checkpoint interval */
-	u64 alloc_seg_type[2];		/* LFS, SSR */
-	u64 alloc_blk_count[2];
-	atomic64_t inplace_count;	/* atomic */
-	u64 fsync_count;
-	u64 fsync_dirty_pages;
-	u64 hot_file_written_blocks;	/* db, db-journal, db-wal, db-shm */
-	u64 cold_file_written_blocks;
-	u64 warm_file_written_blocks;
-
-	u64 max_inmem_pages;		/* get_pages(sbi, F2FS_INMEM_PAGES) */
-	u64 drop_inmem_all;
-	u64 drop_inmem_files;
-	u64 kwritten_byte;
-	u32 fs_por_error;
-	u32 fs_error;
-	u32 max_undiscard_blks;		/* # of undiscard blocks */
-};
-
-struct f2fs_sec_fsck_info {
-	u64 fsck_read_bytes;
-	u64 fsck_written_bytes;
-	u64 fsck_elapsed_time;
-	u32 fsck_exit_code;
-	u32 valid_node_count;
-	u32 valid_inode_count;
-};
-
-struct f2fs_sec_heimdallfs_stat {
-	u32 nr_pkgs;
-	u64 nr_pkg_blks;
-	u32 nr_comp_pkgs;
-	u64 nr_comp_pkg_blks;
-	u64 nr_comp_saved_blks;
-};
 
 struct f2fs_sb_info {
 	struct super_block *sb;			/* pointer to VFS super block */
@@ -3653,56 +3569,6 @@ static inline void *detach_page_private(struct page *page)
 	put_page(page);
 
 	return data;
-}
-
-/* @fs.sec -- 23c33f110b35408f8559496c6095c768 -- */
-enum F2FS_SEC_FUA_MODE {
-       F2FS_SEC_FUA_NONE = 0,
-       F2FS_SEC_FUA_ROOT,
-       F2FS_SEC_FUA_DIR,
-
-       NR_F2FS_SEC_FUA_MODE,
-};
-
-#define __f2fs_is_cold_node(page)                      \
-       (le32_to_cpu(F2FS_NODE(page)->footer.flag) & (1 << COLD_BIT_SHIFT))
-
-static inline void f2fs_cond_set_fua(struct f2fs_io_info *fio)
-{
-       struct f2fs_sb_info *sbi = fio->sbi;
-       struct page *page = fio->page;
-       struct inode *inode = page->mapping->host;
-
-       if (!sbi->s_sec_cond_fua_mode)
-               return;
-
-       if (fio->type == META)
-               fio->op_flags |= REQ_PREFLUSH | REQ_FUA;
-       else if (IS_NOQUOTA(inode) ||
-                       (fio->ino == f2fs_qf_ino(sbi->sb, USRQUOTA) ||
-                        fio->ino == f2fs_qf_ino(sbi->sb, GRPQUOTA) ||
-                        fio->ino == f2fs_qf_ino(sbi->sb, PRJQUOTA)))
-               fio->op_flags |= REQ_FUA;
-       else if (sbi->s_sec_cond_fua_mode == F2FS_SEC_FUA_ROOT &&
-                       fio->ino == F2FS_ROOT_INO(sbi))
-               fio->op_flags |= REQ_FUA;
-       else if (sbi->s_sec_cond_fua_mode == F2FS_SEC_FUA_DIR &&
-                       ((fio->type == NODE && !__f2fs_is_cold_node(page)) ||
-                        (fio->type == DATA && S_ISDIR(inode->i_mode))))
-               fio->op_flags |= REQ_FUA;
-       // Directory Inode or Indirect Node -> COLD_BIT X
-       // ref. set_cold_node()
-
-       /*
-        * P221011-01695
-        * flush_group: Process group in which file's is very important.
-        * e.g., system_server, keystore, etc.
-        */
-       if (fio->type == DATA && !(fio->op_flags & REQ_FUA) &&
-                       in_group_p(F2FS_OPTION(sbi).flush_group)) {
-               if (f2fs_is_atomic_file(inode) && f2fs_is_commit_atomic_write(inode))
-                       fio->op_flags |= REQ_FUA;
-       }
 }
 
 /*

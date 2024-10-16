@@ -361,12 +361,7 @@ static int suspend_prepare(suspend_state_t state)
 #ifndef CONFIG_SUSPEND_SKIP_SYNC
 	trace_suspend_resume(TPS("sync_filesystems"), 0, true);
 	pr_info("Syncing filesystems ... ");
-	if (intr_sync(NULL)) {
-		printk("canceled.\n");
-		trace_suspend_resume(TPS("sync_filesystems"), 0, false);
-		error = -EBUSY;
-		goto Finish;
-	}
+	sys_sync();
 	pr_cont("done.\n");
 	trace_suspend_resume(TPS("sync_filesystems"), 0, false);
 #endif
